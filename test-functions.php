@@ -23,6 +23,12 @@
         if($roku_dev === '') showHelp($scriptname);
     }
 
+    function exitError($msg) {
+        global $logname;
+        file_put_contents($logname, $msg, FILE_APPEND);
+        die($msg);
+    }
+    
     function rokuCurl($method, $url) {
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL,  $url);
@@ -122,7 +128,7 @@
     }
     
     function consoleScript(&$console, $script, $logname) {
-        global $testOk;
+        global $testOk, $scriptname;
         $testOk = 1;
         $scriptPos = 0;
         $scriptMax = count($script);
@@ -137,10 +143,7 @@
             
             if($num_changed_streams === 0) continue;
             if($num_changed_streams === false) {
-                file_put_contents($logname, "Script Crashed", FILE_APPEND);
-                echo "Crashed\n";
-                var_dump($read);
-                die;
+                exitError("Script crashed: $scriptname ($scriptPos)\n");
             } elseif ($num_changed_streams > 0) {
                 $data = fgets($console, 4096);
                 file_put_contents($logname, $data, FILE_APPEND);
@@ -156,12 +159,15 @@
                             call_user_func_array($script[$scriptPos]['action'], $script[$scriptPos]['parms']);
                     }
                     if($testOk === 0) {
-                        file_put_contents($logname, "Test $scriptPos Failed.", FILE_APPEND);
+                        exitError("Test $scriptname ($scriptPos) Failed.\n");
                     }
                     $scriptPos++;
                 }
             }
         } while(($scriptPos < $scriptMax) && ($testOk === 1));
+        if($testOk === 1) {
+            echo "Test $scriptname Passed.";
+        }
     }
 
 //Configure Parms
