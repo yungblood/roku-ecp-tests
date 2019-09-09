@@ -172,7 +172,7 @@
                 $expected = 1;
             }
             if($expected) {
-                print_r($script[$scriptPos]);
+#print_r($script[$scriptPos]);
                 switch($script[$scriptPos]['action']) {
                     case 'none':
                         break;
@@ -187,7 +187,7 @@
                     exitError("Test $scriptname ($scriptPos) Failed.\n");
                 }
                 $scriptPos++;
-                echo "[expect] => ".$script[$scriptPos]['expect']."\n";
+#echo "[expect] => ".$script[$scriptPos]['expect']."\n";
             }
         } while(($scriptPos < $scriptMax) && ($testOk === 1));
         if($testOk === 1) {
