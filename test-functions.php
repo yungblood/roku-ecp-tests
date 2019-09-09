@@ -59,9 +59,24 @@
         global $roku_dev;
         return rokuCurl('POST', "http://$roku_dev:8060/keyup/$key");
     }
-    function rokuKeypress($key) {
+    function rokuKeypress($key, $count = 1) {
         global $roku_dev;
-        return rokuCurl('POST', "http://$roku_dev:8060/keypress/$key");
+        for ($c = 0; $c < $count; $c++) {
+            rokuCurl('POST', "http://$roku_dev:8060/keypress/$key");
+        }
+    }
+    function rokuKeyChar($char = '') {
+        if(ctype_alnum($char)) {
+            return rokuKeypress("Lit_".$char);
+        } else {
+            return rokuKeypress("Lit_%".dechex(ord($char)));
+        }
+    }
+    function rokuKeyString($string) {
+        $len = strlen($string);
+        for ($i = 0; $i < $len; $i++){
+            rokuKeyChar($string[$i]);
+        }
     }
     function rokuLaunch($channel, $launchparms = '') {
         global $roku_dev;
@@ -130,6 +145,7 @@
     function consoleScript(&$console, $script, $logname) {
         global $testOk, $scriptname;
         $testOk = 1;
+        $expected = 0;
         $scriptPos = 0;
         $scriptMax = count($script);
         do {
@@ -141,28 +157,37 @@
             $num_changed_streams = @stream_select($read, $write, $except, null);
             if(feof($console)) return ;
             
-            if($num_changed_streams === 0) continue;
             if($num_changed_streams === false) {
                 exitError("Script crashed: $scriptname ($scriptPos)\n");
+            } elseif($num_changed_streams === 0) {
+                $data = "";
             } elseif ($num_changed_streams > 0) {
                 $data = fgets($console, 4096);
                 file_put_contents($logname, $data, FILE_APPEND);
                 echo "$data";
-                if(strpos($data, $script[$scriptPos]['expect']) !== false) {
-                    switch($script[$scriptPos]['action']) {
-                        case 'none':
-                            break;
-                        case 'testString':
-                        case 'testNotString':
-                            array_unshift($script[$scriptPos]['parms'], $data);
-                        default:
-                            call_user_func_array($script[$scriptPos]['action'], $script[$scriptPos]['parms']);
-                    }
-                    if($testOk === 0) {
-                        exitError("Test $scriptname ($scriptPos) Failed.\n");
-                    }
-                    $scriptPos++;
+            }
+            if($script[$scriptPos]['expect'] === '') {
+                $expected = 1;
+            } elseif(strpos($data, $script[$scriptPos]['expect']) !== false) {
+                $expected = 1;
+            }
+            if($expected) {
+                print_r($script[$scriptPos]);
+                switch($script[$scriptPos]['action']) {
+                    case 'none':
+                        break;
+                    case 'testString':
+                    case 'testNotString':
+                        array_unshift($script[$scriptPos]['parms'], $data);
+                    default:
+                        call_user_func_array($script[$scriptPos]['action'], $script[$scriptPos]['parms']);
                 }
+                $expected = 0;
+                if($testOk === 0) {
+                    exitError("Test $scriptname ($scriptPos) Failed.\n");
+                }
+                $scriptPos++;
+                echo "[expect] => ".$script[$scriptPos]['expect']."\n";
             }
         } while(($scriptPos < $scriptMax) && ($testOk === 1));
         if($testOk === 1) {
