@@ -172,6 +172,9 @@
                 $expected = 1;
             }
             if($expected) {
+                $ecpline = sprintf(">>>> ECP <<<< | expect = '%s' | action = %s(%s)\n", $script[$scriptPos]['expect'], $script[$scriptPos]['action'], implode(',', $script[$scriptPos]['parms']));
+                file_put_contents($logname, $ecpline, FILE_APPEND);
+                echo $ecpline;
 #print_r($script[$scriptPos]);
                 switch($script[$scriptPos]['action']) {
                     case 'none':
